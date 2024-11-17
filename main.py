@@ -1,6 +1,7 @@
 import pygame
 import os
 import random
+import time
 
 # Initialize pygame and font
 pygame.font.init()
@@ -46,11 +47,12 @@ class Ship:
         self.lasers = []
         self.cool_down_counter = 0
         self.mask = None
+        self.rect = None  # Adding rect to be used for collisions
 
     def draw(self, window):
         window.blit(self.ship_img, (self.x, self.y))
 
-    def move_lasers(self, velocity, objs):
+    def move_lasers(self, velocity, objs, window):  # Add window as parameter
         self.cooldown()
         for laser in self.lasers:
             laser.move(velocity)
@@ -90,6 +92,7 @@ class Player(Ship):
         self.max_health = health
         self.shield = False  # Whether the player has a shield
         self.double_shot = False  # Whether the player has a double shot power-up
+        self.rect = self.ship_img.get_rect(center=(self.x, self.y))  # Adding rect for the player
 
     def move(self, keys, player_vel):
         if keys[pygame.K_UP] and self.y - player_vel > 0:
@@ -100,6 +103,8 @@ class Player(Ship):
             self.x -= player_vel
         if keys[pygame.K_RIGHT] and self.x + player_vel + self.ship_img.get_width() < WIDTH:
             self.x += player_vel
+
+        self.rect.topleft = (self.x, self.y)  # Update rect with new position
 
     def shoot(self):
         if self.cool_down_counter == 0:
@@ -120,14 +125,19 @@ class Enemy(Ship):
         self.ship_img = GREEN_SPACE_SHIP
         self.laser_img = GREEN_LASER
         self.mask = pygame.mask.from_surface(self.ship_img)
+        self.rect = self.ship_img.get_rect(center=(self.x, self.y))  # Add the rect for collision detection
 
     def move(self, velocity):
         self.y += velocity
+        self.rect.y = self.y  # Update rect when moving
 
     def shoot(self):
         if random.random() < 0.01:  # Small chance to shoot
             laser = Laser(self.x + self.ship_img.get_width() // 2 - 2, self.y, self.laser_img)
             self.lasers.append(laser)
+
+    def collide(self, obj):
+        return self.rect.colliderect(obj.rect)  # Use the rect attribute for collision
 
 # Power-up class
 class PowerUp:
@@ -141,9 +151,11 @@ class PowerUp:
             self.img = SHIELD_POWERUP
         elif power_type == "double_shot":
             self.img = DOUBLE_SHOT_POWERUP
+        self.rect = self.img.get_rect(center=(self.x, self.y))  # Add rect for power-up
 
     def move(self, velocity):
         self.y += velocity
+        self.rect.y = self.y  # Update rect when moving
 
     def draw(self, window):
         window.blit(self.img, (self.x, self.y))
@@ -152,7 +164,7 @@ class PowerUp:
         return self.y > height
 
     def collide(self, obj):
-        return pygame.Rect(self.x, self.y, self.width, self.height).colliderect(obj)
+        return self.rect.colliderect(obj.rect)  # Collision detection with the player's rect
 
 # Laser class
 class Laser:
@@ -160,11 +172,11 @@ class Laser:
         self.x = x
         self.y = y
         self.laser_img = laser_img
-        self.rect = self.laser_img.get_rect(center=(self.x, self.y))
+        self.rect = self.laser_img.get_rect(center=(self.x, self.y))  # Create rect for laser
 
     def move(self, velocity):
         self.y -= velocity
-        self.rect.y = self.y
+        self.rect.y = self.y  # Update rect when moving
 
     def draw(self, window):
         window.blit(self.laser_img, (self.x, self.y))
@@ -173,7 +185,7 @@ class Laser:
         return not self.rect.colliderect(pygame.Rect(0, 0, WIDTH, height))
 
     def collide(self, obj):
-        return self.rect.colliderect(obj.rect)
+        return self.rect.colliderect(obj.rect)  # Check for collision with the object's rect
 
 # Draw the window
 def DrawWindow(player, enemies, level, lives, powerups, mainFont, score):
@@ -189,9 +201,9 @@ def DrawWindow(player, enemies, level, lives, powerups, mainFont, score):
         powerup.draw(WIN)
 
     # Draw lasers
-    player.move_lasers(-7, enemies)  # Player's lasers go up
+    player.move_lasers(7, enemies, WIN)  # Player's lasers go up
     for enemy in enemies:
-        enemy.move_lasers(3, [])  # Enemy's lasers go down
+        enemy.move_lasers(-3, [], WIN)  # Enemy's lasers go down
 
     # Draw text (level, lives, and score)
     level_label = mainFont.render(f"Level: {level}", 1, (255, 255, 255))
@@ -241,23 +253,15 @@ def main():
         keys = pygame.key.get_pressed()
         player.move(keys, player_vel)
 
-        # Enemy movement and shooting
-        for enemy in enemies:
-            enemy.move(enemy_vel)
-            enemy.shoot()
+        # Player shooting
+        if keys[pygame.K_SPACE]:
+            player.shoot()
 
-            if enemy.y + enemy.ship_img.get_height() > HEIGHT:
-                enemy.y = random.randint(-100, -50)
-                enemy.x = random.randint(50, WIDTH - 50)
-
-        # Power-up movement
+        # Move power-ups
         for powerup in powerups:
-            powerup.move(3)
+            powerup.move(5)
             if powerup.off_screen(HEIGHT):
                 powerups.remove(powerup)
-
-        # Collision detection with power-ups
-        for powerup in powerups:
             if powerup.collide(player):
                 if powerup.power_type == "shield":
                     player.shield = True
@@ -265,24 +269,15 @@ def main():
                     player.double_shot = True
                 powerups.remove(powerup)
 
-        # Collision detection with enemies
+        # Move enemies and check for collision with lasers
         for enemy in enemies:
-            if pygame.sprite.collide_mask(player, enemy):
-                if not player.shield:  # If player doesn't have a shield
-                    lives -= 1
-                    enemies.remove(enemy)
-                    EXPLOSION_SOUND.play()
-                    if lives == 0:
-                        GAME_OVER_SOUND.play()
-                        run = False
+            enemy.move(enemy_vel)
+            if enemy.y > HEIGHT:
+                enemy.y = random.randint(-150, -50)
+                enemy.x = random.randint(50, WIDTH - 50)
+            enemy.shoot()
 
-        # Spawn power-ups
-        if random.random() < 0.01:  # 1% chance to spawn a power-up
-            powerup_type = random.choice(["shield", "double_shot"])
-            powerup = PowerUp(random.randint(50, WIDTH - 50), random.randint(-100, -50), powerup_type)
-            powerups.append(powerup)
-
-        # Draw the window
+        # Draw everything
         DrawWindow(player, enemies, level, lives, powerups, mainFont, score)
 
     pygame.quit()
