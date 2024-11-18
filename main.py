@@ -36,6 +36,7 @@ SHOOT_SOUND = pygame.mixer.Sound(os.path.join("assets", "shoot.wav"))
 EXPLOSION_SOUND = pygame.mixer.Sound(os.path.join("assets", "explosion.wav"))
 GAME_OVER_SOUND = pygame.mixer.Sound(os.path.join("assets", "game_over.wav"))
 
+
 # Ship class
 class Ship:
     def __init__(self, x, y, health=100):
@@ -82,6 +83,7 @@ class Ship:
             self.cool_down_counter = 1
             SHOOT_SOUND.play()
 
+
 # Player class
 class Player(Ship):
     def __init__(self, x, y, health=100):
@@ -93,6 +95,8 @@ class Player(Ship):
         self.shield = False  # Whether the player has a shield
         self.double_shot = False  # Whether the player has a double shot power-up
         self.rect = self.ship_img.get_rect(center=(self.x, self.y))  # Adding rect for the player
+        self.kills = 0  # Track the number of kills
+        self.hits = 0  # Track the number of times the player has been hit
 
     def move(self, keys, player_vel):
         if keys[pygame.K_UP] and self.y - player_vel > 0:
@@ -118,6 +122,32 @@ class Player(Ship):
             self.cool_down_counter = 1
             SHOOT_SOUND.play()
 
+    def increment_kills(self):
+        self.kills += 1
+        if self.kills % 2 == 0:  # Spawn power-up every 2 kills
+            self.spawn_powerup()
+
+    def spawn_powerup(self):
+        power_type = random.choice(["shield", "double_shot"])
+        powerup = PowerUp(self.x, self.y, power_type)
+        return powerup
+
+    def take_damage(self):
+        self.hits += 1
+        if self.hits >= 3:
+            return True  # Game Over condition
+        return False
+
+    def check_collision_with_lasers(self, enemy_lasers):
+        for laser in enemy_lasers:
+            if laser.collide(self):  # If laser collides with player
+                if self.shield:  # If player has a shield, ignore the damage
+                    continue
+                if self.take_damage():  # If hit 3 times, game over
+                    return True
+                enemy_lasers.remove(laser)  # Remove laser after collision
+        return False
+
 # Enemy class
 class Enemy(Ship):
     def __init__(self, x, y, health=100):
@@ -126,9 +156,13 @@ class Enemy(Ship):
         self.laser_img = GREEN_LASER
         self.mask = pygame.mask.from_surface(self.ship_img)
         self.rect = self.ship_img.get_rect(center=(self.x, self.y))  # Add the rect for collision detection
+        self.velocity = random.randint(1, 3)  # Randomize enemy velocity
 
     def move(self, velocity):
+        direction = random.choice([-1, 1])  # Randomly move left or right
+        self.x += direction * random.randint(0, 2)  # Move randomly
         self.y += velocity
+        self.rect.x = self.x
         self.rect.y = self.y  # Update rect when moving
 
     def shoot(self):
@@ -138,6 +172,7 @@ class Enemy(Ship):
 
     def collide(self, obj):
         return self.rect.colliderect(obj.rect)  # Use the rect attribute for collision
+
 
 # Power-up class
 class PowerUp:
@@ -166,6 +201,7 @@ class PowerUp:
     def collide(self, obj):
         return self.rect.colliderect(obj.rect)  # Collision detection with the player's rect
 
+
 # Laser class
 class Laser:
     def __init__(self, x, y, laser_img):
@@ -187,8 +223,9 @@ class Laser:
     def collide(self, obj):
         return self.rect.colliderect(obj.rect)  # Check for collision with the object's rect
 
+
 # Draw the window
-def DrawWindow(player, enemies, level, lives, powerups, mainFont, score):
+def DrawWindow(player, enemies, level, lives, hits, powerups, mainFont, score):
     WIN.blit(BG, (0, 0))  # Draw the background
 
     # Draw player and enemies
@@ -205,15 +242,27 @@ def DrawWindow(player, enemies, level, lives, powerups, mainFont, score):
     for enemy in enemies:
         enemy.move_lasers(-3, [], WIN)  # Enemy's lasers go down
 
-    # Draw text (level, lives, and score)
+    # Draw text (level, lives, hits, and score)
     level_label = mainFont.render(f"Level: {level}", 1, (255, 255, 255))
     lives_label = mainFont.render(f"Lives: {lives}", 1, (255, 0, 0))
+    hits_label = mainFont.render(f"Hits: {hits}", 1, (255, 255, 0))  # Display hit counter
     score_label = mainFont.render(f"Score: {score}", 1, (255, 255, 255))
+
     WIN.blit(level_label, (10, 10))
     WIN.blit(lives_label, (WIDTH - lives_label.get_width() - 10, 10))
+    WIN.blit(hits_label, (WIDTH - hits_label.get_width() - 10, 40))  # Display hits next to lives
     WIN.blit(score_label, (WIDTH // 2 - score_label.get_width() // 2, 10))
 
     pygame.display.update()
+
+
+# Game Over screen
+def game_over_screen():
+    game_over_font = pygame.font.SysFont("arial", 50)
+    game_over_label = game_over_font.render("GAME OVER", 1, (255, 0, 0))
+    WIN.blit(game_over_label, (WIDTH // 2 - game_over_label.get_width() // 2, HEIGHT // 2 - 50))
+    pygame.display.update()
+
 
 # Main function
 def main():
@@ -225,16 +274,22 @@ def main():
     enemy_vel = 1
     laser_vel = 5
     score = 0
+    hits = 0  # Track player hits
     mainFont = pygame.font.SysFont("arial", 20)
 
     # Create player
     player = Player(WIDTH // 2, HEIGHT - 100)
 
     # Create enemies
-    enemies = []
-    for i in range(5):
-        enemy = Enemy(random.randint(50, WIDTH - 50), random.randint(-150, -50))
-        enemies.append(enemy)
+    def create_enemies(level):
+        enemies = []
+        num_enemies = 5 + level * 2  # Increase the number of enemies with each level
+        for i in range(num_enemies):
+            enemy = Enemy(random.randint(50, WIDTH - 50), random.randint(-150, -50))
+            enemies.append(enemy)
+        return enemies
+
+    enemies = create_enemies(level)
 
     # Power-ups
     powerups = []
@@ -269,7 +324,7 @@ def main():
                     player.double_shot = True
                 powerups.remove(powerup)
 
-        # Move enemies and check for collision with lasers
+        # Check for collision with enemies
         for enemy in enemies:
             enemy.move(enemy_vel)
             if enemy.y > HEIGHT:
@@ -277,10 +332,34 @@ def main():
                 enemy.x = random.randint(50, WIDTH - 50)
             enemy.shoot()
 
-        # Draw everything
-        DrawWindow(player, enemies, level, lives, powerups, mainFont, score)
+            # Check for collisions with player lasers
+            player.move_lasers(7, enemies, WIN)
+            if enemy.collide(player):
+                if player.take_damage():
+                    run = False  # Game over if hit 3 times
+                enemies.remove(enemy)
+                EXPLOSION_SOUND.play()
 
+            # Check if player was hit by enemy lasers
+            if player.check_collision_with_lasers(enemy.lasers):
+                if player.take_damage():
+                    run = False  # Game over if hit 3 times
+                enemy.lasers.clear()  # Remove all enemy lasers after collision
+
+        # Check if all enemies are defeated
+        if len(enemies) == 0:
+            level += 1
+            enemies = create_enemies(level)  # Create new set of enemies for the next level
+
+        # Draw everything
+        DrawWindow(player, enemies, level, lives, hits, powerups, mainFont, score)
+
+    # Game over logic
+    GAME_OVER_SOUND.play()
+    game_over_screen()
+    time.sleep(2)
     pygame.quit()
+
 
 if __name__ == "__main__":
     main()
