@@ -37,16 +37,6 @@ EXPLOSION_SOUND = pygame.mixer.Sound(os.path.join("assets", "explosion.wav"))
 GAME_OVER_SOUND = pygame.mixer.Sound(os.path.join("assets", "game_over.wav"))
 
 
-
-
-def scroll_background():
-    global BG_Y
-    BG_Y += 1  # Adjust scrolling speed as needed
-    if BG_Y > HEIGHT:
-        BG_Y = 0
-    WIN.blit(BG, (0, BG_Y - HEIGHT))  # Draw the first background
-    WIN.blit(BG, (0, BG_Y))  # Draw the second background
-
 # Ship class
 class Ship:
     def __init__(self, x, y, health=100):
@@ -236,9 +226,7 @@ class Laser:
 
 # Draw the window
 def DrawWindow(player, enemies, level, lives, hits, powerups, mainFont, score):
-   
-    
-    # WIN.blit(BG, (0, 0))  # Draw the background
+    WIN.blit(BG, (0, 0))  # Draw the background
 
     # Draw player and enemies
     player.draw(WIN)
@@ -362,7 +350,7 @@ def main():
         if len(enemies) == 0:
             level += 1
             enemies = create_enemies(level)  # Create new set of enemies for the next level
-mainloop()
+
         # Draw everything
         DrawWindow(player, enemies, level, lives, hits, powerups, mainFont, score)
 
