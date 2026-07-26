@@ -6,7 +6,7 @@ const ENEMY_MIN_SPEED = 1.2
 const ENEMY_MAX_SPEED = 2.8
 const ENEMY_SHOT_CHANCE = 0.005
 const POWERUP_DROP_CHANCE = 0.12
-const BOSS_BOMB_CHANCE = 0.045
+const BOSS_BOMB_CHANCE = 0.03
 
 const canvas = document.getElementById('game')
 const ctx = canvas ? canvas.getContext('2d') : null
@@ -77,6 +77,7 @@ let waveCooldown
 let shieldTimer
 let doubleShotTimer
 let boss
+let bossTimer
 
 function resetGame() {
   player = { x: WIDTH / 2 - 30, y: HEIGHT - 88, w: 60, h: 44 }
@@ -97,6 +98,7 @@ function resetGame() {
   shieldTimer = 0
   doubleShotTimer = 0
   boss = null
+  bossTimer = 0
   spawnWave()
   syncHud()
   refreshAudioButton()
@@ -114,7 +116,10 @@ function syncHud() {
   else if (shieldTimer > 0 && doubleShotTimer > 0) statusEl.textContent = 'Shield + Double shot'
   else if (shieldTimer > 0) statusEl.textContent = 'Shield active'
   else if (doubleShotTimer > 0) statusEl.textContent = 'Double shot active'
-  else if (boss) statusEl.textContent = `Boss fight (${boss.hp})`
+  else if (boss) {
+    const hp = Number.isFinite(boss.hp) ? Math.max(0, Math.floor(boss.hp)) : 0
+    statusEl.textContent = `Boss fight (${hp})`
+  }
   else statusEl.textContent = 'Running'
 }
 
@@ -169,12 +174,13 @@ function spawnWave() {
       y: 38,
       w: 260,
       h: 88,
-      hp: 32 + wave * 6,
-      maxHp: 32 + wave * 6,
+      hp: 12 + wave * 3,
+      maxHp: 12 + wave * 3,
       speed: 2.2 + wave * 0.18,
       dir: Math.random() > 0.5 ? 1 : -1,
       sprite: enemyShips[wave % enemyShips.length] || null,
     }
+    bossTimer = 0
   }
 }
 
@@ -272,6 +278,15 @@ function update() {
     }
 
     if (boss) {
+      bossTimer += 1
+      if (!Number.isFinite(boss.hp) || !Number.isFinite(boss.maxHp) || boss.maxHp <= 0) {
+        boss = null
+        wave += 1
+        waveCooldown = 30
+        spawnWave()
+        return
+      }
+
       boss.x += boss.speed * boss.dir
       if (boss.x <= 0 || boss.x + boss.w >= WIDTH) boss.dir *= -1
       if (Math.random() < BOSS_BOMB_CHANCE + wave * 0.0035) {
@@ -282,6 +297,17 @@ function update() {
           h: 22,
           vy: 4.2 + Math.random() * 2.4,
         })
+      }
+
+      // Failsafe so the run can't get stuck in boss mode.
+      if (bossTimer > 3600) {
+        score += 500
+        boss = null
+        wave += 1
+        waveCooldown = 30
+        spawnWave()
+        syncHud()
+        return
       }
     }
   }
@@ -458,7 +484,9 @@ function draw() {
 
       const barX = boss.x
       const barY = boss.y - 14
-      const hpWidth = (boss.hp / boss.maxHp) * boss.w
+      const hpCurrent = Number.isFinite(boss.hp) ? Math.max(0, boss.hp) : 0
+      const hpMax = Number.isFinite(boss.maxHp) && boss.maxHp > 0 ? boss.maxHp : 1
+      const hpWidth = (hpCurrent / hpMax) * boss.w
       ctx.fillStyle = '#1f2937'
       ctx.fillRect(barX, barY, boss.w, 8)
       ctx.fillStyle = '#ef4444'
