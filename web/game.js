@@ -7,6 +7,7 @@ const ENEMY_MAX_SPEED = 2.8
 const ENEMY_SHOT_CHANCE = 0.005
 const POWERUP_DROP_CHANCE = 0.12
 const BOSS_BOMB_CHANCE = 0.02
+const QUICK_TEST_MODE = true
 
 const canvas = document.getElementById('game')
 const ctx = canvas ? canvas.getContext('2d') : null
@@ -78,6 +79,7 @@ let shieldTimer
 let doubleShotTimer
 let boss
 let bossTimer
+let emptyFieldFrames
 
 function resetGame() {
   player = { x: WIDTH / 2 - 30, y: HEIGHT - 88, w: 60, h: 44 }
@@ -99,6 +101,7 @@ function resetGame() {
   doubleShotTimer = 0
   boss = null
   bossTimer = 0
+  emptyFieldFrames = 0
   spawnWave()
   syncHud()
   refreshAudioButton()
@@ -146,8 +149,8 @@ function setAudioEnabled(enabled) {
 }
 
 function spawnWave() {
-  const rows = Math.min(5, 2 + Math.floor(wave / 2))
-  const cols = 10
+  const rows = QUICK_TEST_MODE ? 1 : Math.min(5, 2 + Math.floor(wave / 2))
+  const cols = QUICK_TEST_MODE ? 4 : 10
   const xGap = 112
   const yGap = 60
   const formationWidth = (cols - 1) * xGap + 40
@@ -181,6 +184,7 @@ function spawnWave() {
       sprite: enemyShips[wave % enemyShips.length] || null,
     }
     bossTimer = 0
+    emptyFieldFrames = 0
   }
 }
 
@@ -392,8 +396,13 @@ function update() {
   }
 
   if (enemies.length === 0 && !boss && waveCooldown <= 0) {
-    spawnBoss()
-    waveCooldown = 60
+    emptyFieldFrames += 1
+    if (emptyFieldFrames > 15) {
+      spawnBoss()
+      waveCooldown = 0
+    }
+  } else {
+    emptyFieldFrames = 0
   }
 
   syncHud()
