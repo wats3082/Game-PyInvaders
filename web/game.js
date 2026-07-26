@@ -7,7 +7,10 @@ const ENEMY_MAX_SPEED = 2.8
 const ENEMY_SHOT_CHANCE = 0.005
 const POWERUP_DROP_CHANCE = 0.12
 const BOSS_BOMB_CHANCE = 0.02
+const BASE_SHOOT_COOLDOWN = 12
+const RAPID_SHOOT_COOLDOWN = 7
 const QUICK_TEST_MODE = true
+const BOSS_WAVE_INTERVAL = QUICK_TEST_MODE ? 2 : 3
 
 const canvas = document.getElementById('game')
 const ctx = canvas ? canvas.getContext('2d') : null
@@ -50,6 +53,13 @@ const bgMusic = new Audio('./assets/background_music.mp3')
 bgMusic.loop = true
 bgMusic.volume = 0.35
 
+const POWERUP_STYLES = {
+  shield: { color: '#06b6d4', label: 'S' },
+  double: { color: '#a78bfa', label: '2X' },
+  rapid: { color: '#f97316', label: 'RF' },
+  life: { color: '#34d399', label: '1UP' },
+}
+
 function isImageReady(img) {
   return Boolean(img && img.complete && img.naturalWidth > 0)
 }
@@ -77,9 +87,13 @@ let shootCooldown
 let waveCooldown
 let shieldTimer
 let doubleShotTimer
+let rapidFireTimer
 let boss
 let bossTimer
 let emptyFieldFrames
+let currentPhase
+let statusFlash
+let statusFlashTimer
 
 function resetGame() {
   player = { x: WIDTH / 2 - 30, y: HEIGHT - 88, w: 60, h: 44 }
@@ -99,10 +113,14 @@ function resetGame() {
   waveCooldown = 0
   shieldTimer = 0
   doubleShotTimer = 0
+  rapidFireTimer = 0
   boss = null
   bossTimer = 0
   emptyFieldFrames = 0
-  spawnWave()
+  currentPhase = 'wave'
+  statusFlash = ''
+  statusFlashTimer = 0
+  startWave()
   syncHud()
   refreshAudioButton()
   refreshPauseButton()
@@ -116,12 +134,18 @@ function syncHud() {
   if (!statusEl) return
   if (gameOver) statusEl.textContent = 'Game over'
   else if (paused) statusEl.textContent = 'Paused'
-  else if (shieldTimer > 0 && doubleShotTimer > 0) statusEl.textContent = 'Shield + Double shot'
-  else if (shieldTimer > 0) statusEl.textContent = 'Shield active'
-  else if (doubleShotTimer > 0) statusEl.textContent = 'Double shot active'
+  else if (statusFlashTimer > 0 && statusFlash) statusEl.textContent = statusFlash
   else if (boss) {
     const hp = Number.isFinite(boss.hp) ? Math.max(0, Math.floor(boss.hp)) : 0
     statusEl.textContent = `Boss fight (${hp})`
+  }
+  else if (currentPhase === 'cleared') statusEl.textContent = `Wave ${wave} incoming`
+  else if (shieldTimer > 0 || doubleShotTimer > 0 || rapidFireTimer > 0) {
+    const effects = []
+    if (shieldTimer > 0) effects.push('Shield')
+    if (doubleShotTimer > 0) effects.push('Double shot')
+    if (rapidFireTimer > 0) effects.push('Rapid fire')
+    statusEl.textContent = effects.join(' + ')
   }
   else statusEl.textContent = 'Running'
 }
@@ -150,10 +174,19 @@ function setAudioEnabled(enabled) {
   refreshAudioButton()
 }
 
-function spawnWave() {
+function isBossWave(level) {
+  return level > 1 && level % BOSS_WAVE_INTERVAL === 0
+}
+
+function setStatusFlash(message, frames = 120) {
+  statusFlash = message
+  statusFlashTimer = frames
+}
+
+function spawnEnemyWave() {
   const rows = QUICK_TEST_MODE ? 1 : Math.min(5, 2 + Math.floor(wave / 2))
   const cols = QUICK_TEST_MODE ? 4 : 10
-  const xGap = 112
+  const xGap = QUICK_TEST_MODE ? 142 : 112
   const yGap = 60
   const formationWidth = (cols - 1) * xGap + 40
   const startX = Math.max(24, Math.floor((WIDTH - formationWidth) / 2))
@@ -161,6 +194,8 @@ function spawnWave() {
 
   for (let r = 0; r < rows; r += 1) {
     for (let c = 0; c < cols; c += 1) {
+      const roll = Math.random()
+      const pattern = roll > 0.86 ? 'dive' : roll > 0.54 ? 'zigzag' : 'sine'
       enemies.push({
         x: startX + c * xGap,
         y: startY + r * yGap,
@@ -169,25 +204,60 @@ function spawnWave() {
         speed: ENEMY_MIN_SPEED + Math.random() * (ENEMY_MAX_SPEED - ENEMY_MIN_SPEED),
         dir: Math.random() > 0.5 ? 1 : -1,
         img: enemyShips[(r + c) % enemyShips.length],
+        pattern,
+        step: Math.floor(Math.random() * 120),
+        swayAmp: 0.3 + Math.random() * 0.7,
+        swayFreq: 0.03 + Math.random() * 0.025,
+        swayPhase: Math.random() * Math.PI * 2,
+        zigzagPeriod: 28 + Math.floor(Math.random() * 28),
+        diveTimer: 0,
+        diveChance: 0.00045 + wave * 0.00008,
+        dropRate: 0.03 + wave * 0.004,
       })
     }
   }
+}
 
-  function spawnBoss() {
-    boss = {
-      x: WIDTH / 2 - 130,
-      y: 38,
-      w: 260,
-      h: 88,
-      hp: 12 + wave * 3,
-      maxHp: 12 + wave * 3,
-      speed: 2.2 + wave * 0.18,
-      dir: Math.random() > 0.5 ? 1 : -1,
-      sprite: enemyShips[wave % enemyShips.length] || null,
-    }
-    bossTimer = 0
-    emptyFieldFrames = 0
+function spawnBoss() {
+  boss = {
+    x: WIDTH / 2 - 130,
+    y: 38,
+    w: 260,
+    h: 88,
+    hp: 12 + wave * 3,
+    maxHp: 12 + wave * 3,
+    speed: 2.2 + wave * 0.18,
+    dir: Math.random() > 0.5 ? 1 : -1,
+    sprite: enemyShips[wave % enemyShips.length] || null,
   }
+  bossTimer = 0
+  emptyFieldFrames = 0
+  setStatusFlash(`Boss wave ${wave}!`, 110)
+}
+
+function startWave() {
+  enemies = []
+  boss = null
+  shots = []
+  enemyShots = []
+  bossBombs = []
+  powerups = []
+  bossTimer = 0
+  emptyFieldFrames = 0
+  waveCooldown = 0
+  currentPhase = isBossWave(wave) ? 'boss' : 'wave'
+  if (currentPhase === 'boss') spawnBoss()
+  else spawnEnemyWave()
+}
+
+function queueNextWave() {
+  if (currentPhase === 'cleared') return
+  currentPhase = 'cleared'
+  wave += 1
+  waveCooldown = 54
+  enemyShots = []
+  bossBombs = []
+  powerups = []
 }
 
 function rectHit(a, b) {
@@ -207,15 +277,43 @@ function spawnParticles(x, y, color) {
   }
 }
 
-function maybeDropPowerup(enemy) {
-  if (Math.random() > POWERUP_DROP_CHANCE) return
+function rollPowerupType() {
+  const roll = Math.random()
+  if (roll < 0.3) return 'shield'
+  if (roll < 0.58) return 'double'
+  if (roll < 0.85) return 'rapid'
+  return 'life'
+}
+
+function maybeDropPowerup(enemy, chance = POWERUP_DROP_CHANCE) {
+  if (Math.random() > chance) return
   powerups.push({
     x: enemy.x + enemy.w / 2 - 12,
     y: enemy.y + enemy.h / 2 - 12,
     w: 24,
     h: 24,
-    type: Math.random() > 0.5 ? 'shield' : 'double',
+    type: rollPowerupType(),
   })
+}
+
+function applyPowerup(type) {
+  if (type === 'shield') {
+    shieldTimer = Math.max(shieldTimer, 60 * 8)
+    setStatusFlash('Picked up Shield', 100)
+    return
+  }
+  if (type === 'double') {
+    doubleShotTimer = Math.max(doubleShotTimer, 60 * 8)
+    setStatusFlash('Picked up Double shot', 100)
+    return
+  }
+  if (type === 'rapid') {
+    rapidFireTimer = Math.max(rapidFireTimer, 60 * 8)
+    setStatusFlash('Picked up Rapid fire', 100)
+    return
+  }
+  lives = Math.min(5, lives + 1)
+  setStatusFlash('Picked up Extra life', 100)
 }
 
 function shootPlayer() {
@@ -244,7 +342,7 @@ function handleInput() {
 
   if ((keys.has(' ') || keys.has('space')) && shootCooldown <= 0) {
     shootPlayer()
-    shootCooldown = doubleShotTimer > 0 ? 9 : 12
+    shootCooldown = rapidFireTimer > 0 ? RAPID_SHOOT_COOLDOWN : BASE_SHOOT_COOLDOWN
   }
 }
 
@@ -256,6 +354,16 @@ function update() {
   if (waveCooldown > 0) waveCooldown -= 1
   if (shieldTimer > 0) shieldTimer -= 1
   if (doubleShotTimer > 0) doubleShotTimer -= 1
+  if (rapidFireTimer > 0) rapidFireTimer -= 1
+  if (statusFlashTimer > 0) statusFlashTimer -= 1
+
+  if (currentPhase === 'cleared') {
+    if (waveCooldown <= 0) {
+      startWave()
+    }
+    syncHud()
+    return
+  }
 
   for (const shot of shots) shot.y -= LASER_SPEED
   for (const shot of enemyShots) shot.y += LASER_SPEED * 0.85
@@ -280,47 +388,56 @@ function update() {
   }
 
   for (const enemy of enemies) {
-    enemy.x += enemy.speed * enemy.dir
+    enemy.step += 1
+    const swayOffset = Math.sin(enemy.step * enemy.swayFreq + enemy.swayPhase) * enemy.swayAmp
+    enemy.x += enemy.speed * enemy.dir + swayOffset
+    if (enemy.pattern === 'zigzag' && enemy.step % enemy.zigzagPeriod === 0) enemy.dir *= -1
+    if (enemy.pattern === 'dive' && enemy.diveTimer <= 0 && enemy.y < HEIGHT * 0.58 && Math.random() < enemy.diveChance) {
+      enemy.diveTimer = 22 + Math.floor(Math.random() * 18)
+    }
+    if (enemy.diveTimer > 0) {
+      enemy.y += 1.45
+      enemy.diveTimer -= 1
+    } else {
+      enemy.y += enemy.dropRate
+    }
     if (enemy.x <= 0 || enemy.x + enemy.w >= WIDTH) enemy.dir *= -1
-    enemy.y += 0.03 + wave * 0.004
-    if (Math.random() < ENEMY_SHOT_CHANCE + wave * 0.0009) shootEnemy(enemy)
+    if (Math.random() < ENEMY_SHOT_CHANCE + wave * 0.00075) shootEnemy(enemy)
     if (enemy.y + enemy.h >= player.y) {
       lives = 0
       gameOver = true
     }
+  }
 
-    if (boss) {
-      bossTimer += 1
-      if (!Number.isFinite(boss.hp) || !Number.isFinite(boss.maxHp) || boss.maxHp <= 0) {
-        boss = null
-        wave += 1
-        waveCooldown = 30
-        spawnWave()
-        return
-      }
+  if (boss) {
+    bossTimer += 1
+    if (!Number.isFinite(boss.hp) || !Number.isFinite(boss.maxHp) || boss.maxHp <= 0) {
+      boss = null
+      queueNextWave()
+      syncHud()
+      return
+    }
 
-      boss.x += boss.speed * boss.dir
-      if (boss.x <= 0 || boss.x + boss.w >= WIDTH) boss.dir *= -1
-      if (Math.random() < BOSS_BOMB_CHANCE + wave * 0.0035) {
-        bossBombs.push({
-          x: boss.x + boss.w * (0.2 + Math.random() * 0.6),
-          y: boss.y + boss.h - 8,
-          w: 18,
-          h: 22,
-          vy: 4.2 + Math.random() * 2.4,
-        })
-      }
+    boss.x += boss.speed * boss.dir
+    if (boss.x <= 0 || boss.x + boss.w >= WIDTH) boss.dir *= -1
+    if (Math.random() < BOSS_BOMB_CHANCE + wave * 0.0035) {
+      bossBombs.push({
+        x: boss.x + boss.w * (0.2 + Math.random() * 0.6),
+        y: boss.y + boss.h - 8,
+        w: 18,
+        h: 22,
+        vy: 4.2 + Math.random() * 2.4,
+      })
+    }
 
-      // Failsafe so the run can't get stuck in boss mode.
-      if (bossTimer > 3600) {
-        score += 500
-        boss = null
-        wave += 1
-        waveCooldown = 30
-        spawnWave()
-        syncHud()
-        return
-      }
+    // Failsafe so a run cannot stay in boss mode indefinitely.
+    if (bossTimer > 3600) {
+      score += 500
+      boss = null
+      setStatusFlash('Boss retreated', 120)
+      queueNextWave()
+      syncHud()
+      return
     }
   }
 
@@ -332,11 +449,10 @@ function update() {
       spawnParticles(shot.x, shot.y, '#f97316')
       if (boss.hp <= 0) {
         score += 1400 + wave * 120
+        maybeDropPowerup({ x: boss.x, y: boss.y, w: boss.w, h: boss.h }, 0.5)
         spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#facc15')
         boss = null
-        wave += 1
-        waveCooldown = 45
-        spawnWave()
+        queueNextWave()
       }
       continue
     }
@@ -360,22 +476,23 @@ function update() {
       spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#22d3ee')
       continue
     }
+    lives -= 1
+    spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444')
+    if (lives <= 0) {
+      gameOver = true
+      break
+    }
+  }
 
-    for (let i = bossBombs.length - 1; i >= 0; i -= 1) {
-      if (!rectHit(bossBombs[i], player)) continue
-      bossBombs.splice(i, 1)
-      if (shieldTimer > 0) {
-        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#22d3ee')
-        continue
-      }
-      lives -= 1
-      spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444')
-      if (lives <= 0) {
-        gameOver = true
-        break
-      }
+  for (let i = bossBombs.length - 1; i >= 0; i -= 1) {
+    if (!rectHit(bossBombs[i], player)) continue
+    bossBombs.splice(i, 1)
+    if (shieldTimer > 0) {
+      spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#22d3ee')
+      continue
     }
     lives -= 1
+    spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444')
     if (lives <= 0) {
       gameOver = true
       break
@@ -386,8 +503,7 @@ function update() {
     if (!rectHit(powerups[i], player)) continue
     const picked = powerups[i]
     powerups.splice(i, 1)
-    if (picked.type === 'shield') shieldTimer = 60 * 8
-    else doubleShotTimer = 60 * 8
+    applyPowerup(picked.type)
   }
 
   if (score > bestScore) {
@@ -397,12 +513,9 @@ function update() {
     } catch {}
   }
 
-  if (enemies.length === 0 && !boss && waveCooldown <= 0) {
+  if (!boss && enemies.length === 0 && currentPhase === 'wave' && waveCooldown <= 0) {
     emptyFieldFrames += 1
-    if (emptyFieldFrames > 15) {
-      spawnBoss()
-      waveCooldown = 0
-    }
+    if (emptyFieldFrames > 15) queueNextWave()
   } else {
     emptyFieldFrames = 0
   }
@@ -444,18 +557,19 @@ function drawBossBomb(bomb) {
 
 function drawPowerup(powerup) {
   if (!ctx) return
+  const style = POWERUP_STYLES[powerup.type] || POWERUP_STYLES.double
   ctx.save()
   ctx.beginPath()
   ctx.arc(powerup.x + 12, powerup.y + 12, 10, 0, Math.PI * 2)
-  ctx.fillStyle = powerup.type === 'shield' ? '#06b6d4' : '#a78bfa'
+  ctx.fillStyle = style.color
   ctx.fill()
   ctx.lineWidth = 2
   ctx.strokeStyle = '#e2e8f0'
   ctx.stroke()
   ctx.fillStyle = '#f8fafc'
-  ctx.font = 'bold 10px Segoe UI'
+  ctx.font = 'bold 9px Segoe UI'
   ctx.textAlign = 'center'
-  ctx.fillText(powerup.type === 'shield' ? 'S' : '2X', powerup.x + 12, powerup.y + 15)
+  ctx.fillText(style.label, powerup.x + 12, powerup.y + 15)
   ctx.restore()
 }
 
@@ -487,28 +601,28 @@ function draw() {
       ctx.fillStyle = '#22d3ee'
       ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h)
     }
+  }
 
-    if (boss) {
-      if (isImageReady(boss.sprite)) {
-        ctx.drawImage(boss.sprite, boss.x, boss.y, boss.w, boss.h)
-      } else {
-        ctx.fillStyle = '#7f1d1d'
-        ctx.fillRect(boss.x, boss.y, boss.w, boss.h)
-      }
-      ctx.strokeStyle = '#ef4444'
-      ctx.lineWidth = 3
-      ctx.strokeRect(boss.x, boss.y, boss.w, boss.h)
-
-      const barX = boss.x
-      const barY = boss.y - 14
-      const hpCurrent = Number.isFinite(boss.hp) ? Math.max(0, boss.hp) : 0
-      const hpMax = Number.isFinite(boss.maxHp) && boss.maxHp > 0 ? boss.maxHp : 1
-      const hpWidth = (hpCurrent / hpMax) * boss.w
-      ctx.fillStyle = '#1f2937'
-      ctx.fillRect(barX, barY, boss.w, 8)
-      ctx.fillStyle = '#ef4444'
-      ctx.fillRect(barX, barY, hpWidth, 8)
+  if (boss) {
+    if (isImageReady(boss.sprite)) {
+      ctx.drawImage(boss.sprite, boss.x, boss.y, boss.w, boss.h)
+    } else {
+      ctx.fillStyle = '#7f1d1d'
+      ctx.fillRect(boss.x, boss.y, boss.w, boss.h)
     }
+    ctx.strokeStyle = '#ef4444'
+    ctx.lineWidth = 3
+    ctx.strokeRect(boss.x, boss.y, boss.w, boss.h)
+
+    const barX = boss.x
+    const barY = boss.y - 14
+    const hpCurrent = Number.isFinite(boss.hp) ? Math.max(0, boss.hp) : 0
+    const hpMax = Number.isFinite(boss.maxHp) && boss.maxHp > 0 ? boss.maxHp : 1
+    const hpWidth = (hpCurrent / hpMax) * boss.w
+    ctx.fillStyle = '#1f2937'
+    ctx.fillRect(barX, barY, boss.w, 8)
+    ctx.fillStyle = '#ef4444'
+    ctx.fillRect(barX, barY, hpWidth, 8)
   }
 
   for (const shot of shots) drawLaser(shot, yellowLaser, '#fde047')
@@ -555,10 +669,9 @@ function tick() {
     bossBombs = []
     particles = []
     boss = null
-    waveCooldown = 30
-    if (enemies.length === 0) {
-      spawnWave()
-    }
+    powerups = []
+    currentPhase = 'cleared'
+    waveCooldown = Math.max(waveCooldown, 45)
     if (statusEl) {
       statusEl.textContent = 'Recovered from frame fault'
     }
