@@ -49,6 +49,10 @@ const bgMusic = new Audio('./assets/background_music.mp3')
 bgMusic.loop = true
 bgMusic.volume = 0.35
 
+function isImageReady(img) {
+  return Boolean(img && img.complete && img.naturalWidth > 0)
+}
+
 let player
 let enemies
 let shots
@@ -169,7 +173,7 @@ function spawnWave() {
       maxHp: 32 + wave * 6,
       speed: 2.2 + wave * 0.18,
       dir: Math.random() > 0.5 ? 1 : -1,
-      sprite: enemyShips[wave % enemyShips.length],
+      sprite: enemyShips[wave % enemyShips.length] || null,
     }
   }
 }
@@ -368,7 +372,7 @@ function drawLaser(shot, img, color = '#facc15') {
   ctx.save()
   ctx.shadowBlur = 14
   ctx.shadowColor = color
-  if (img.complete) {
+  if (isImageReady(img)) {
     ctx.drawImage(img, shot.x - 3, shot.y, 10, 18)
     ctx.globalAlpha = 0.7
     ctx.fillStyle = color
@@ -414,13 +418,13 @@ function drawPowerup(powerup) {
 
 function draw() {
   if (!ctx) return
-  if (bg.complete) ctx.drawImage(bg, 0, 0, WIDTH, HEIGHT)
+  if (isImageReady(bg)) ctx.drawImage(bg, 0, 0, WIDTH, HEIGHT)
   else {
     ctx.fillStyle = '#020617'
     ctx.fillRect(0, 0, WIDTH, HEIGHT)
   }
 
-  if (yellowShip.complete) ctx.drawImage(yellowShip, player.x, player.y, player.w, player.h)
+  if (isImageReady(yellowShip)) ctx.drawImage(yellowShip, player.x, player.y, player.w, player.h)
   else {
     ctx.fillStyle = '#f59e0b'
     ctx.fillRect(player.x, player.y, player.w, player.h)
@@ -435,14 +439,14 @@ function draw() {
   }
 
   for (const enemy of enemies) {
-    if (enemy.img.complete) ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.w, enemy.h)
+    if (isImageReady(enemy.img)) ctx.drawImage(enemy.img, enemy.x, enemy.y, enemy.w, enemy.h)
     else {
       ctx.fillStyle = '#22d3ee'
       ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h)
     }
 
     if (boss) {
-      if (boss.sprite.complete) {
+      if (isImageReady(boss.sprite)) {
         ctx.drawImage(boss.sprite, boss.x, boss.y, boss.w, boss.h)
       } else {
         ctx.fillStyle = '#7f1d1d'
