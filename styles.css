@@ -1,0 +1,57 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+  color: #e2e8f0;
+  background: radial-gradient(circle at 20% 20%, #1e293b, #020617 65%);
+}
+
+.app {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #f8fafc;
+}
+
+.header p {
+  margin: 6px 0 0;
+  color: #94a3b8;
+}
+
+.hud {
+  margin: 14px 0;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+#game {
+  width: 100%;
+  max-width: 750px;
+  height: auto;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  display: block;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+}
+
+.footer {
+  margin-top: 12px;
+  color: #94a3b8;
+}
