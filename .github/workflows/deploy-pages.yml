@@ -15,6 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Copy game assets into web bundle
+        run: |
+          rm -rf web/assets
+          cp -r assets web/assets
+
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v3
         with:
