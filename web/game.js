@@ -23,6 +23,11 @@ const pauseBtn = document.getElementById('pause-btn')
 const audioBtn = document.getElementById('audio-btn')
 const keys = new Set()
 const appEl = document.querySelector('.app')
+const headerEl = document.querySelector('.header')
+const hudEl = document.querySelector('.hud')
+const controlsEl = document.querySelector('.controls')
+const stageEl = document.querySelector('.stage')
+const footerEl = document.querySelector('.footer')
 
 const bg = new Image()
 bg.src = './assets/background-black.png'
@@ -682,9 +687,25 @@ function tick() {
 function fitCanvasToViewport() {
   if (!canvas) return
   const compact = window.innerWidth <= 900
-  const reserved = compact ? 330 : 260
-  const sidePadding = compact ? 24 : 42
-  const maxByHeight = Math.max(250, window.innerHeight - reserved)
+  const sidePadding = compact ? 22 : 30
+  let maxByHeight = Math.max(250, window.innerHeight - (compact ? 320 : 280))
+  if (!compact && appEl && stageEl) {
+    const appStyle = window.getComputedStyle(appEl)
+    const stageStyle = window.getComputedStyle(stageEl)
+    const gridGap = Number.parseFloat(appStyle.rowGap || appStyle.gap || '0') || 0
+    const appPaddingTop = Number.parseFloat(appStyle.paddingTop || '0') || 0
+    const appPaddingBottom = Number.parseFloat(appStyle.paddingBottom || '0') || 0
+    const stageChrome =
+      (Number.parseFloat(stageStyle.paddingTop || '0') || 0) +
+      (Number.parseFloat(stageStyle.paddingBottom || '0') || 0) +
+      (Number.parseFloat(stageStyle.borderTopWidth || '0') || 0) +
+      (Number.parseFloat(stageStyle.borderBottomWidth || '0') || 0)
+    const chromeBlocks = [headerEl, hudEl, controlsEl, footerEl]
+      .filter(Boolean)
+      .reduce((sum, el) => sum + el.getBoundingClientRect().height, 0)
+    const totalChromeHeight = appPaddingTop + appPaddingBottom + chromeBlocks + gridGap * 4 + stageChrome + 6
+    maxByHeight = Math.max(240, window.innerHeight - totalChromeHeight)
+  }
   const maxByWidth = Math.max(320, window.innerWidth - sidePadding)
   const aspect = WIDTH / HEIGHT
   const byWidthHeight = maxByWidth / aspect
