@@ -741,6 +741,10 @@ if (!canvas || !ctx) {
 
 fitCanvasToViewport()
 window.addEventListener('resize', fitCanvasToViewport)
+window.addEventListener('load', fitCanvasToViewport)
+if (document.fonts && typeof document.fonts.ready?.then === 'function') {
+  document.fonts.ready.then(fitCanvasToViewport).catch(() => {})
+}
 
 resetGame()
 tick()
