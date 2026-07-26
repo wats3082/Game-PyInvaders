@@ -17,6 +17,7 @@ const statusEl = document.getElementById('status')
 const pauseBtn = document.getElementById('pause-btn')
 const audioBtn = document.getElementById('audio-btn')
 const keys = new Set()
+const appEl = document.querySelector('.app')
 
 const bg = new Image()
 bg.src = './assets/background-black.png'
@@ -392,6 +393,19 @@ function tick() {
   requestAnimationFrame(tick)
 }
 
+function fitCanvasToViewport() {
+  if (!canvas) return
+  const reserved = 210
+  const maxByHeight = Math.max(280, window.innerHeight - reserved)
+  const maxByWidth = Math.max(280, window.innerWidth - 24)
+  const side = Math.min(750, maxByHeight, maxByWidth)
+  canvas.style.width = `${side}px`
+  canvas.style.height = `${side}px`
+  if (appEl) {
+    appEl.style.gridTemplateRows = 'auto auto auto 1fr auto'
+  }
+}
+
 if (pauseBtn) {
   pauseBtn.addEventListener('click', togglePause)
 }
@@ -415,6 +429,9 @@ document.addEventListener('keyup', (event) => {
 if (!canvas || !ctx) {
   throw new Error('Game canvas not available in DOM.')
 }
+
+fitCanvasToViewport()
+window.addEventListener('resize', fitCanvasToViewport)
 
 resetGame()
 tick()
