@@ -4,16 +4,21 @@
 
 body {
   margin: 0;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
   color: #e2e8f0;
   background: radial-gradient(circle at 20% 20%, #1e293b, #020617 65%);
 }
 
 .app {
-  max-width: 860px;
+  height: 100vh;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 8px;
 }
 
 .header h1 {
@@ -23,21 +28,22 @@ body {
 }
 
 .header p {
-  margin: 6px 0 0;
+  margin: 2px 0 0;
   color: #94a3b8;
+  font-size: 0.9rem;
 }
 
 .hud {
-  margin: 14px 0;
+  margin: 0;
   display: flex;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .controls {
-  margin: 0 0 12px;
+  margin: 0;
   display: flex;
-  gap: 10px;
+  gap: 6px;
 }
 
 .controls button {
@@ -54,23 +60,26 @@ body {
 }
 
 .chip {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 999px;
   background: #0f172a;
   border: 1px solid #334155;
+  font-size: 0.9rem;
 }
 
 #game {
-  width: 100%;
-  max-width: 750px;
+  width: min(100%, 760px);
+  max-width: 100%;
   height: auto;
   border: 1px solid #334155;
   border-radius: 12px;
   display: block;
+  margin: 0 auto;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
 }
 
 .footer {
-  margin-top: 12px;
+  margin-top: 0;
   color: #94a3b8;
+  font-size: 0.85rem;
 }
