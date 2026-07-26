@@ -34,6 +34,25 @@ body {
   flex-wrap: wrap;
 }
 
+.controls {
+  margin: 0 0 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.controls button {
+  border: 1px solid #334155;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.controls button:hover {
+  background: #1e293b;
+}
+
 .chip {
   padding: 8px 12px;
   border-radius: 999px;
