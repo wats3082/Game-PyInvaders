@@ -19,31 +19,31 @@ const audioBtn = document.getElementById('audio-btn')
 const keys = new Set()
 
 const bg = new Image()
-bg.src = '../assets/background-black.png'
+bg.src = './assets/background-black.png'
 const yellowShip = new Image()
-yellowShip.src = '../assets/pixel_ship_yellow.png'
+yellowShip.src = './assets/pixel_ship_yellow.png'
 const enemyShips = [
-  '../assets/pixel_ship_red_small.png',
-  '../assets/pixel_ship_green_small.png',
-  '../assets/pixel_ship_blue_small.png',
+  './assets/pixel_ship_red_small.png',
+  './assets/pixel_ship_green_small.png',
+  './assets/pixel_ship_blue_small.png',
 ].map((src) => {
   const img = new Image()
   img.src = src
   return img
 })
 const yellowLaser = new Image()
-yellowLaser.src = '../assets/pixel_laser_yellow.png'
+yellowLaser.src = './assets/pixel_laser_yellow.png'
 const enemyLasers = [
-  '../assets/pixel_laser_red.png',
-  '../assets/pixel_laser_green.png',
-  '../assets/pixel_laser_blue.png',
+  './assets/pixel_laser_red.png',
+  './assets/pixel_laser_green.png',
+  './assets/pixel_laser_blue.png',
 ].map((src) => {
   const img = new Image()
   img.src = src
   return img
 })
 
-const bgMusic = new Audio('../assets/background_music.mp3')
+const bgMusic = new Audio('./assets/background_music.mp3')
 bgMusic.loop = true
 bgMusic.volume = 0.35
 
