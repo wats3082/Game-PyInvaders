@@ -12,22 +12,22 @@
         <div>
           <p class="eyebrow">Watson Demo Arcade</p>
           <h1>PyInvaders</h1>
-          <p class="subhead">Galaga-inspired browser run in a neon-violet command shell.</p>
+          <p class="subhead">Galaga-inspired browser run with fast controls and compact HUD readouts.</p>
         </div>
         <div class="badge">Web Beta</div>
       </header>
 
       <section class="hud panel">
-        <div class="chip"><span class="chip-label">Score</span><span id="score">0</span></div>
-        <div class="chip"><span class="chip-label">Best</span><span id="best">0</span></div>
-        <div class="chip"><span class="chip-label">Lives</span><span id="lives">3</span></div>
-        <div class="chip"><span class="chip-label">Wave</span><span id="wave">1</span></div>
-        <div class="chip status-chip"><span class="chip-label">Status</span><span id="status">Running</span></div>
+        <div class="chip"><span class="chip-label">Score</span><span class="chip-value" id="score">0</span></div>
+        <div class="chip"><span class="chip-label">Best</span><span class="chip-value" id="best">0</span></div>
+        <div class="chip"><span class="chip-label">Lives</span><span class="chip-value" id="lives">3</span></div>
+        <div class="chip"><span class="chip-label">Wave</span><span class="chip-value" id="wave">1</span></div>
+        <div class="chip status-chip"><span class="chip-label">Status</span><span class="chip-value" id="status">Running</span></div>
       </section>
 
       <section class="controls panel">
-        <button id="pause-btn" type="button">Pause</button>
-        <button id="audio-btn" type="button">Music: Off</button>
+        <button id="pause-btn" class="btn-primary" type="button">Pause</button>
+        <button id="audio-btn" class="btn-secondary" type="button">Music: Off</button>
       </section>
 
       <section class="stage panel">
