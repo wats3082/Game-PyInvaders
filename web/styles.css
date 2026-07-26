@@ -238,6 +238,65 @@ body {
     min-height: 100vh;
     overflow: hidden;
   }
+
+  .header {
+    padding: 9px 11px;
+    gap: 10px;
+  }
+
+  .eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+  }
+
+  .header h1 {
+    font-size: clamp(1.42rem, 1.85vw, 2.05rem);
+  }
+
+  .subhead {
+    font-size: 0.8rem;
+    line-height: 1.24;
+  }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 5px 9px;
+  }
+
+  .hud {
+    gap: 5px;
+    padding: 7px 9px;
+  }
+
+  .controls {
+    gap: 6px;
+    padding: 7px 9px;
+  }
+
+  .controls button {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+
+  .chip {
+    min-width: 94px;
+    padding: 5px 8px;
+    font-size: 0.8rem;
+  }
+
+  .chip-label {
+    font-size: 0.6rem;
+  }
+
+  .status-chip {
+    min-width: 164px;
+  }
+
+  .footer {
+    font-size: 0.74rem;
+    line-height: 1.2;
+    padding: 7px 10px;
+  }
 }
 
 @media (max-width: 900px) {
