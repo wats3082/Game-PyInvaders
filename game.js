@@ -6,7 +6,7 @@ const ENEMY_MIN_SPEED = 1.2
 const ENEMY_MAX_SPEED = 2.8
 const ENEMY_SHOT_CHANCE = 0.005
 const POWERUP_DROP_CHANCE = 0.12
-const BOSS_BOMB_CHANCE = 0.03
+const BOSS_BOMB_CHANCE = 0.02
 
 const canvas = document.getElementById('game')
 const ctx = canvas ? canvas.getContext('2d') : null
@@ -266,6 +266,12 @@ function update() {
   bossBombs = bossBombs.filter((b) => b.y < HEIGHT + 60)
   powerups = powerups.filter((p) => p.y < HEIGHT + 30)
   particles = particles.filter((p) => p.life > 0)
+  if (bossBombs.length > 80) {
+    bossBombs.splice(0, bossBombs.length - 80)
+  }
+  if (particles.length > 400) {
+    particles.splice(0, particles.length - 400)
+  }
 
   for (const enemy of enemies) {
     enemy.x += enemy.speed * enemy.dir
@@ -529,8 +535,23 @@ function togglePause() {
 }
 
 function tick() {
-  update()
-  draw()
+  try {
+    update()
+    draw()
+  } catch (error) {
+    console.error('Frame error recovered:', error)
+    enemyShots = []
+    bossBombs = []
+    particles = []
+    boss = null
+    waveCooldown = 30
+    if (enemies.length === 0) {
+      spawnWave()
+    }
+    if (statusEl) {
+      statusEl.textContent = 'Recovered from frame fault'
+    }
+  }
   requestAnimationFrame(tick)
 }
 
