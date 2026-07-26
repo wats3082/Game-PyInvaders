@@ -1,11 +1,12 @@
-const WIDTH = 750
-const HEIGHT = 750
+const WIDTH = 1280
+const HEIGHT = 720
 const PLAYER_SPEED = 6
 const LASER_SPEED = 8
 const ENEMY_MIN_SPEED = 1.2
 const ENEMY_MAX_SPEED = 2.8
 const ENEMY_SHOT_CHANCE = 0.005
 const POWERUP_DROP_CHANCE = 0.12
+const BOSS_BOMB_CHANCE = 0.045
 
 const canvas = document.getElementById('game')
 const ctx = canvas ? canvas.getContext('2d') : null
@@ -52,6 +53,7 @@ let player
 let enemies
 let shots
 let enemyShots
+let bossBombs
 let powerups
 let particles
 let score
@@ -70,12 +72,14 @@ let shootCooldown
 let waveCooldown
 let shieldTimer
 let doubleShotTimer
+let boss
 
 function resetGame() {
-  player = { x: WIDTH / 2 - 25, y: HEIGHT - 90, w: 50, h: 38 }
+  player = { x: WIDTH / 2 - 30, y: HEIGHT - 88, w: 60, h: 44 }
   enemies = []
   shots = []
   enemyShots = []
+  bossBombs = []
   powerups = []
   particles = []
   score = 0
@@ -88,6 +92,7 @@ function resetGame() {
   waveCooldown = 0
   shieldTimer = 0
   doubleShotTimer = 0
+  boss = null
   spawnWave()
   syncHud()
   refreshAudioButton()
@@ -105,6 +110,7 @@ function syncHud() {
   else if (shieldTimer > 0 && doubleShotTimer > 0) statusEl.textContent = 'Shield + Double shot'
   else if (shieldTimer > 0) statusEl.textContent = 'Shield active'
   else if (doubleShotTimer > 0) statusEl.textContent = 'Double shot active'
+  else if (boss) statusEl.textContent = `Boss fight (${boss.hp})`
   else statusEl.textContent = 'Running'
 }
 
@@ -132,10 +138,11 @@ function setAudioEnabled(enabled) {
 
 function spawnWave() {
   const rows = Math.min(5, 2 + Math.floor(wave / 2))
-  const cols = 8
-  const xGap = 74
-  const yGap = 64
-  const startX = 70
+  const cols = 10
+  const xGap = 112
+  const yGap = 60
+  const formationWidth = (cols - 1) * xGap + 40
+  const startX = Math.max(24, Math.floor((WIDTH - formationWidth) / 2))
   const startY = 60
 
   for (let r = 0; r < rows; r += 1) {
@@ -149,6 +156,20 @@ function spawnWave() {
         dir: Math.random() > 0.5 ? 1 : -1,
         img: enemyShips[(r + c) % enemyShips.length],
       })
+    }
+  }
+
+  function spawnBoss() {
+    boss = {
+      x: WIDTH / 2 - 130,
+      y: 38,
+      w: 260,
+      h: 88,
+      hp: 32 + wave * 6,
+      maxHp: 32 + wave * 6,
+      speed: 2.2 + wave * 0.18,
+      dir: Math.random() > 0.5 ? 1 : -1,
+      sprite: enemyShips[wave % enemyShips.length],
     }
   }
 }
@@ -183,10 +204,10 @@ function maybeDropPowerup(enemy) {
 
 function shootPlayer() {
   const centerX = player.x + player.w / 2 - 2
-  shots.push({ x: centerX, y: player.y - 12, w: 4, h: 12 })
+  shots.push({ x: centerX, y: player.y - 16, w: 6, h: 16 })
   if (doubleShotTimer > 0) {
-    shots.push({ x: centerX - 14, y: player.y - 8, w: 4, h: 12 })
-    shots.push({ x: centerX + 14, y: player.y - 8, w: 4, h: 12 })
+    shots.push({ x: centerX - 14, y: player.y - 12, w: 6, h: 16 })
+    shots.push({ x: centerX + 14, y: player.y - 12, w: 6, h: 16 })
   }
 }
 
@@ -194,8 +215,8 @@ function shootEnemy(enemy) {
   enemyShots.push({
     x: enemy.x + enemy.w / 2 - 2,
     y: enemy.y + enemy.h,
-    w: 4,
-    h: 12,
+    w: 6,
+    h: 16,
   })
 }
 
@@ -222,6 +243,7 @@ function update() {
 
   for (const shot of shots) shot.y -= LASER_SPEED
   for (const shot of enemyShots) shot.y += LASER_SPEED * 0.85
+  for (const bomb of bossBombs) bomb.y += bomb.vy
   for (const powerup of powerups) powerup.y += 1.8
   for (const p of particles) {
     p.x += p.vx
@@ -231,6 +253,7 @@ function update() {
 
   shots = shots.filter((s) => s.y + s.h > 0)
   enemyShots = enemyShots.filter((s) => s.y < HEIGHT)
+  bossBombs = bossBombs.filter((b) => b.y < HEIGHT + 60)
   powerups = powerups.filter((p) => p.y < HEIGHT + 30)
   particles = particles.filter((p) => p.life > 0)
 
@@ -243,10 +266,39 @@ function update() {
       lives = 0
       gameOver = true
     }
+
+    if (boss) {
+      boss.x += boss.speed * boss.dir
+      if (boss.x <= 0 || boss.x + boss.w >= WIDTH) boss.dir *= -1
+      if (Math.random() < BOSS_BOMB_CHANCE + wave * 0.0035) {
+        bossBombs.push({
+          x: boss.x + boss.w * (0.2 + Math.random() * 0.6),
+          y: boss.y + boss.h - 8,
+          w: 18,
+          h: 22,
+          vy: 4.2 + Math.random() * 2.4,
+        })
+      }
+    }
   }
 
   for (let i = shots.length - 1; i >= 0; i -= 1) {
     const shot = shots[i]
+    if (boss && rectHit(shot, boss)) {
+      shots.splice(i, 1)
+      boss.hp -= 1
+      spawnParticles(shot.x, shot.y, '#f97316')
+      if (boss.hp <= 0) {
+        score += 1400 + wave * 120
+        spawnParticles(boss.x + boss.w / 2, boss.y + boss.h / 2, '#facc15')
+        boss = null
+        wave += 1
+        waveCooldown = 45
+        spawnWave()
+      }
+      continue
+    }
+
     for (let j = enemies.length - 1; j >= 0; j -= 1) {
       if (!rectHit(shot, enemies[j])) continue
       const hitEnemy = enemies[j]
@@ -265,6 +317,21 @@ function update() {
     if (shieldTimer > 0) {
       spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#22d3ee')
       continue
+    }
+
+    for (let i = bossBombs.length - 1; i >= 0; i -= 1) {
+      if (!rectHit(bossBombs[i], player)) continue
+      bossBombs.splice(i, 1)
+      if (shieldTimer > 0) {
+        spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#22d3ee')
+        continue
+      }
+      lives -= 1
+      spawnParticles(player.x + player.w / 2, player.y + player.h / 2, '#ef4444')
+      if (lives <= 0) {
+        gameOver = true
+        break
+      }
     }
     lives -= 1
     if (lives <= 0) {
@@ -288,10 +355,9 @@ function update() {
     } catch {}
   }
 
-  if (enemies.length === 0 && waveCooldown <= 0) {
-    wave += 1
+  if (enemies.length === 0 && !boss && waveCooldown <= 0) {
+    spawnBoss()
     waveCooldown = 60
-    spawnWave()
   }
 
   syncHud()
@@ -299,12 +365,34 @@ function update() {
 
 function drawLaser(shot, img, color = '#facc15') {
   if (!ctx) return
+  ctx.save()
+  ctx.shadowBlur = 14
+  ctx.shadowColor = color
   if (img.complete) {
     ctx.drawImage(img, shot.x - 3, shot.y, 10, 18)
+    ctx.globalAlpha = 0.7
+    ctx.fillStyle = color
+    ctx.fillRect(shot.x + 1, shot.y, 4, 16)
+    ctx.restore()
     return
   }
   ctx.fillStyle = color
   ctx.fillRect(shot.x, shot.y, shot.w, shot.h)
+  ctx.restore()
+}
+
+function drawBossBomb(bomb) {
+  if (!ctx) return
+  ctx.save()
+  ctx.shadowBlur = 16
+  ctx.shadowColor = '#fb923c'
+  ctx.fillStyle = '#fb923c'
+  ctx.beginPath()
+  ctx.ellipse(bomb.x, bomb.y, 10, 14, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#fff7ed'
+  ctx.fillRect(bomb.x - 2, bomb.y - 8, 4, 6)
+  ctx.restore()
 }
 
 function drawPowerup(powerup) {
@@ -352,10 +440,31 @@ function draw() {
       ctx.fillStyle = '#22d3ee'
       ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h)
     }
+
+    if (boss) {
+      if (boss.sprite.complete) {
+        ctx.drawImage(boss.sprite, boss.x, boss.y, boss.w, boss.h)
+      } else {
+        ctx.fillStyle = '#7f1d1d'
+        ctx.fillRect(boss.x, boss.y, boss.w, boss.h)
+      }
+      ctx.strokeStyle = '#ef4444'
+      ctx.lineWidth = 3
+      ctx.strokeRect(boss.x, boss.y, boss.w, boss.h)
+
+      const barX = boss.x
+      const barY = boss.y - 14
+      const hpWidth = (boss.hp / boss.maxHp) * boss.w
+      ctx.fillStyle = '#1f2937'
+      ctx.fillRect(barX, barY, boss.w, 8)
+      ctx.fillStyle = '#ef4444'
+      ctx.fillRect(barX, barY, hpWidth, 8)
+    }
   }
 
-  for (const shot of shots) drawLaser(shot, yellowLaser)
+  for (const shot of shots) drawLaser(shot, yellowLaser, '#fde047')
   for (const shot of enemyShots) drawLaser(shot, enemyLasers[0], '#fb7185')
+  for (const bomb of bossBombs) drawBossBomb(bomb)
   for (const powerup of powerups) drawPowerup(powerup)
 
   for (const p of particles) {
@@ -396,11 +505,14 @@ function tick() {
 function fitCanvasToViewport() {
   if (!canvas) return
   const reserved = 210
-  const maxByHeight = Math.max(280, window.innerHeight - reserved)
-  const maxByWidth = Math.max(280, window.innerWidth - 24)
-  const side = Math.min(750, maxByHeight, maxByWidth)
-  canvas.style.width = `${side}px`
-  canvas.style.height = `${side}px`
+  const maxByHeight = Math.max(320, window.innerHeight - reserved)
+  const maxByWidth = Math.max(480, window.innerWidth - 24)
+  const aspect = WIDTH / HEIGHT
+  const byWidthHeight = maxByWidth / aspect
+  const renderHeight = Math.min(maxByHeight, byWidthHeight)
+  const renderWidth = renderHeight * aspect
+  canvas.style.width = `${Math.floor(renderWidth)}px`
+  canvas.style.height = `${Math.floor(renderHeight)}px`
   if (appEl) {
     appEl.style.gridTemplateRows = 'auto auto auto 1fr auto'
   }

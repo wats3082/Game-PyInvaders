@@ -13,7 +13,7 @@ body {
 
 .app {
   height: 100vh;
-  max-width: 900px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 10px 12px;
   display: grid;
@@ -68,7 +68,7 @@ body {
 }
 
 #game {
-  width: min(100%, 760px);
+  width: min(100%, 1280px);
   max-width: 100%;
   height: auto;
   border: 1px solid #334155;
