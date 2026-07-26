@@ -8,7 +8,7 @@ const ENEMY_SHOT_CHANCE = 0.005
 const POWERUP_DROP_CHANCE = 0.12
 
 const canvas = document.getElementById('game')
-const ctx = canvas.getContext('2d')
+const ctx = canvas ? canvas.getContext('2d') : null
 const scoreEl = document.getElementById('score')
 const bestEl = document.getElementById('best')
 const livesEl = document.getElementById('lives')
@@ -54,7 +54,12 @@ let enemyShots
 let powerups
 let particles
 let score
-let bestScore = Number(localStorage.getItem('pyinvaders-best') || '0')
+let bestScore = 0
+try {
+  bestScore = Number(localStorage.getItem('pyinvaders-best') || '0')
+} catch {
+  bestScore = 0
+}
 let lives
 let wave
 let gameOver
@@ -89,10 +94,11 @@ function resetGame() {
 }
 
 function syncHud() {
-  scoreEl.textContent = String(score)
-  bestEl.textContent = String(bestScore)
-  livesEl.textContent = String(lives)
-  waveEl.textContent = String(wave)
+  if (scoreEl) scoreEl.textContent = String(score)
+  if (bestEl) bestEl.textContent = String(bestScore)
+  if (livesEl) livesEl.textContent = String(lives)
+  if (waveEl) waveEl.textContent = String(wave)
+  if (!statusEl) return
   if (gameOver) statusEl.textContent = 'Game over'
   else if (paused) statusEl.textContent = 'Paused'
   else if (shieldTimer > 0 && doubleShotTimer > 0) statusEl.textContent = 'Shield + Double shot'
@@ -102,11 +108,15 @@ function syncHud() {
 }
 
 function refreshPauseButton() {
-  pauseBtn.textContent = paused ? 'Resume' : 'Pause'
+  if (pauseBtn) {
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause'
+  }
 }
 
 function refreshAudioButton() {
-  audioBtn.textContent = `Music: ${audioEnabled ? 'On' : 'Off'}`
+  if (audioBtn) {
+    audioBtn.textContent = `Music: ${audioEnabled ? 'On' : 'Off'}`
+  }
 }
 
 function setAudioEnabled(enabled) {
@@ -272,7 +282,9 @@ function update() {
 
   if (score > bestScore) {
     bestScore = score
-    localStorage.setItem('pyinvaders-best', String(bestScore))
+    try {
+      localStorage.setItem('pyinvaders-best', String(bestScore))
+    } catch {}
   }
 
   if (enemies.length === 0 && waveCooldown <= 0) {
@@ -285,6 +297,7 @@ function update() {
 }
 
 function drawLaser(shot, img, color = '#facc15') {
+  if (!ctx) return
   if (img.complete) {
     ctx.drawImage(img, shot.x - 3, shot.y, 10, 18)
     return
@@ -294,6 +307,7 @@ function drawLaser(shot, img, color = '#facc15') {
 }
 
 function drawPowerup(powerup) {
+  if (!ctx) return
   ctx.save()
   ctx.beginPath()
   ctx.arc(powerup.x + 12, powerup.y + 12, 10, 0, Math.PI * 2)
@@ -310,6 +324,7 @@ function drawPowerup(powerup) {
 }
 
 function draw() {
+  if (!ctx) return
   if (bg.complete) ctx.drawImage(bg, 0, 0, WIDTH, HEIGHT)
   else {
     ctx.fillStyle = '#020617'
@@ -377,8 +392,12 @@ function tick() {
   requestAnimationFrame(tick)
 }
 
-pauseBtn.addEventListener('click', togglePause)
-audioBtn.addEventListener('click', () => setAudioEnabled(!audioEnabled))
+if (pauseBtn) {
+  pauseBtn.addEventListener('click', togglePause)
+}
+if (audioBtn) {
+  audioBtn.addEventListener('click', () => setAudioEnabled(!audioEnabled))
+}
 
 document.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase()
@@ -392,6 +411,10 @@ document.addEventListener('keydown', (event) => {
 document.addEventListener('keyup', (event) => {
   keys.delete(event.key.toLowerCase())
 })
+
+if (!canvas || !ctx) {
+  throw new Error('Game canvas not available in DOM.')
+}
 
 resetGame()
 tick()
