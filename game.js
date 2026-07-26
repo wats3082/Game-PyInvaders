@@ -9,7 +9,7 @@ const POWERUP_DROP_CHANCE = 0.12
 const BOSS_BOMB_CHANCE = 0.02
 const BASE_SHOOT_COOLDOWN = 12
 const RAPID_SHOOT_COOLDOWN = 7
-const QUICK_TEST_MODE = true
+const QUICK_TEST_MODE = false
 const BOSS_WAVE_INTERVAL = QUICK_TEST_MODE ? 2 : 3
 
 const canvas = document.getElementById('game')
