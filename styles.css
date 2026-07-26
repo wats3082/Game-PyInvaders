@@ -31,10 +31,10 @@ body {
   min-height: 100vh;
   max-width: 1480px;
   margin: 0 auto;
-  padding: 16px 16px 18px;
+  padding: 18px 18px 20px;
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
-  gap: 12px;
+  gap: 13px;
 }
 
 .panel {
@@ -45,6 +45,14 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 16px 34px rgba(7, 2, 15, 0.5);
   backdrop-filter: blur(3px);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.panel:hover {
+  border-color: rgba(232, 121, 249, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 18px 36px rgba(7, 2, 15, 0.55);
 }
 
 .header {
@@ -75,8 +83,9 @@ body {
 .subhead {
   margin: 6px 0 0;
   color: var(--text-2);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.35;
+  max-width: 58ch;
 }
 
 .badge {
@@ -95,7 +104,8 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 10px 12px;
+  align-items: stretch;
+  padding: 11px 12px;
 }
 
 .controls {
@@ -118,6 +128,15 @@ body {
   transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
+.controls .btn-primary {
+  border-color: rgba(232, 121, 249, 0.68);
+  background: linear-gradient(180deg, rgba(115, 39, 153, 0.78), rgba(78, 23, 115, 0.98));
+}
+
+.controls .btn-secondary {
+  background: linear-gradient(180deg, rgba(56, 24, 78, 0.58), rgba(37, 13, 57, 0.94));
+}
+
 .controls button:hover {
   border-color: rgba(232, 121, 249, 0.8);
   box-shadow: 0 0 16px rgba(217, 70, 239, 0.28);
@@ -126,6 +145,11 @@ body {
 
 .controls button:active {
   transform: translateY(0);
+}
+
+.controls button:focus-visible {
+  outline: 2px solid rgba(232, 121, 249, 0.85);
+  outline-offset: 2px;
 }
 
 .controls button[aria-pressed='true'] {
@@ -139,10 +163,11 @@ body {
   border-radius: 10px;
   background: rgba(34, 16, 53, 0.72);
   border: 1px solid rgba(196, 181, 253, 0.28);
-  padding: 7px 10px;
+  padding: 7px 11px;
   display: flex;
   flex-direction: column;
   gap: 3px;
+  justify-content: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   font-size: 0.9rem;
 }
@@ -154,14 +179,31 @@ body {
   letter-spacing: 0.08em;
 }
 
+.chip-value {
+  color: #fdf4ff;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
 .status-chip {
   min-width: 196px;
 }
 
 .stage {
-  padding: 8px;
+  padding: 9px;
   display: grid;
   place-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.stage::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 11px;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% -20%, rgba(217, 70, 239, 0.18), transparent 58%);
 }
 
 #game {
