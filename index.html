@@ -8,27 +8,33 @@
   </head>
   <body>
     <main class="app">
-      <header class="header">
-        <h1>PyInvaders</h1>
-        <p>Galaga-inspired browser beta</p>
+      <header class="header panel">
+        <div>
+          <p class="eyebrow">Watson Demo Arcade</p>
+          <h1>PyInvaders</h1>
+          <p class="subhead">Galaga-inspired browser run in a neon-violet command shell.</p>
+        </div>
+        <div class="badge">Web Beta</div>
       </header>
 
-      <section class="hud">
-        <div class="chip">Score: <span id="score">0</span></div>
-        <div class="chip">Best: <span id="best">0</span></div>
-        <div class="chip">Lives: <span id="lives">3</span></div>
-        <div class="chip">Wave: <span id="wave">1</span></div>
-        <div class="chip">Status: <span id="status">Running</span></div>
+      <section class="hud panel">
+        <div class="chip"><span class="chip-label">Score</span><span id="score">0</span></div>
+        <div class="chip"><span class="chip-label">Best</span><span id="best">0</span></div>
+        <div class="chip"><span class="chip-label">Lives</span><span id="lives">3</span></div>
+        <div class="chip"><span class="chip-label">Wave</span><span id="wave">1</span></div>
+        <div class="chip status-chip"><span class="chip-label">Status</span><span id="status">Running</span></div>
       </section>
 
-      <section class="controls">
+      <section class="controls panel">
         <button id="pause-btn" type="button">Pause</button>
         <button id="audio-btn" type="button">Music: Off</button>
       </section>
 
-      <canvas id="game" width="1280" height="720" aria-label="PyInvaders game canvas"></canvas>
+      <section class="stage panel">
+        <canvas id="game" width="1280" height="720" aria-label="PyInvaders game canvas"></canvas>
+      </section>
 
-      <footer class="footer">
+      <footer class="footer panel">
         Controls: Move with Arrow keys (or A/D), fire with Space, restart with R, pause with P.
       </footer>
     </main>

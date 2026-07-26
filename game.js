@@ -129,12 +129,14 @@ function syncHud() {
 function refreshPauseButton() {
   if (pauseBtn) {
     pauseBtn.textContent = paused ? 'Resume' : 'Pause'
+    pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false')
   }
 }
 
 function refreshAudioButton() {
   if (audioBtn) {
     audioBtn.textContent = `Music: ${audioEnabled ? 'On' : 'Off'}`
+    audioBtn.setAttribute('aria-pressed', audioEnabled ? 'true' : 'false')
   }
 }
 
@@ -522,16 +524,16 @@ function draw() {
   }
 
   if (paused || gameOver) {
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.76)'
+    ctx.fillStyle = 'rgba(8, 2, 18, 0.78)'
     ctx.fillRect(0, 0, WIDTH, HEIGHT)
-    ctx.fillStyle = '#f8fafc'
+    ctx.fillStyle = '#f5e9ff'
     ctx.textAlign = 'center'
-    ctx.font = 'bold 46px Segoe UI'
+    ctx.font = '700 50px Segoe UI'
     ctx.fillText(gameOver ? 'GAME OVER' : 'PAUSED', WIDTH / 2, HEIGHT / 2 - 15)
-    ctx.font = '24px Segoe UI'
+    ctx.font = '600 24px Segoe UI'
     ctx.fillText(`Score: ${score}`, WIDTH / 2, HEIGHT / 2 + 26)
     ctx.font = '18px Segoe UI'
-    ctx.fillStyle = '#cbd5e1'
+    ctx.fillStyle = '#d8b4fe'
     ctx.fillText(gameOver ? 'Press R to restart' : 'Press P to resume', WIDTH / 2, HEIGHT / 2 + 58)
   }
 }
@@ -566,18 +568,17 @@ function tick() {
 
 function fitCanvasToViewport() {
   if (!canvas) return
-  const reserved = 210
-  const maxByHeight = Math.max(320, window.innerHeight - reserved)
-  const maxByWidth = Math.max(480, window.innerWidth - 24)
+  const compact = window.innerWidth <= 900
+  const reserved = compact ? 330 : 260
+  const sidePadding = compact ? 24 : 42
+  const maxByHeight = Math.max(250, window.innerHeight - reserved)
+  const maxByWidth = Math.max(320, window.innerWidth - sidePadding)
   const aspect = WIDTH / HEIGHT
   const byWidthHeight = maxByWidth / aspect
   const renderHeight = Math.min(maxByHeight, byWidthHeight)
   const renderWidth = renderHeight * aspect
   canvas.style.width = `${Math.floor(renderWidth)}px`
   canvas.style.height = `${Math.floor(renderHeight)}px`
-  if (appEl) {
-    appEl.style.gridTemplateRows = 'auto auto auto 1fr auto'
-  }
 }
 
 if (pauseBtn) {
