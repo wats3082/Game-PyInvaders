@@ -2,84 +2,219 @@
   box-sizing: border-box;
 }
 
+:root {
+  --bg-0: #06020d;
+  --bg-1: #100325;
+  --bg-2: #1f1239;
+  --panel: rgba(21, 13, 39, 0.86);
+  --panel-border: rgba(217, 70, 239, 0.3);
+  --text-1: #f5e9ff;
+  --text-2: #c4b5fd;
+  --text-3: #a78bfa;
+  --accent-1: #a855f7;
+  --accent-2: #d946ef;
+  --accent-3: #e879f9;
+}
+
 body {
   margin: 0;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
   font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
-  color: #e2e8f0;
-  background: radial-gradient(circle at 20% 20%, #1e293b, #020617 65%);
+  color: var(--text-1);
+  background:
+    radial-gradient(circle at 15% 12%, rgba(217, 70, 239, 0.2), transparent 42%),
+    radial-gradient(circle at 88% 18%, rgba(168, 85, 247, 0.14), transparent 36%),
+    linear-gradient(165deg, var(--bg-0) 0%, var(--bg-1) 52%, var(--bg-2) 100%);
 }
 
 .app {
-  height: 100vh;
-  max-width: 1400px;
+  min-height: 100vh;
+  max-width: 1480px;
   margin: 0 auto;
-  padding: 10px 12px;
+  padding: 16px 16px 18px;
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
-  gap: 8px;
+  gap: 12px;
+}
+
+.panel {
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 16px 34px rgba(7, 2, 15, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent-3);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 2rem;
-  color: #f8fafc;
+  font-size: clamp(1.75rem, 2.2vw, 2.45rem);
+  line-height: 1.05;
+  color: #fcf5ff;
+  text-shadow: 0 0 20px rgba(217, 70, 239, 0.34);
 }
 
-.header p {
-  margin: 2px 0 0;
-  color: #94a3b8;
-  font-size: 0.9rem;
+.subhead {
+  margin: 6px 0 0;
+  color: var(--text-2);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.badge {
+  border: 1px solid rgba(232, 121, 249, 0.45);
+  border-radius: 999px;
+  background: rgba(217, 70, 239, 0.14);
+  color: #f0abfc;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 8px 12px;
 }
 
 .hud {
-  margin: 0;
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
+  padding: 10px 12px;
 }
 
 .controls {
-  margin: 0;
   display: flex;
-  gap: 6px;
+  gap: 8px;
+  padding: 10px 12px;
+  flex-wrap: wrap;
 }
 
 .controls button {
-  border: 1px solid #334155;
-  border-radius: 8px;
-  background: #0f172a;
-  color: #e2e8f0;
-  padding: 8px 12px;
+  border: 1px solid rgba(216, 180, 254, 0.36);
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(65, 26, 88, 0.6), rgba(39, 13, 62, 0.94));
+  color: #fae8ff;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 .controls button:hover {
-  background: #1e293b;
+  border-color: rgba(232, 121, 249, 0.8);
+  box-shadow: 0 0 16px rgba(217, 70, 239, 0.28);
+  transform: translateY(-1px);
+}
+
+.controls button:active {
+  transform: translateY(0);
+}
+
+.controls button[aria-pressed='true'] {
+  border-color: rgba(244, 114, 182, 0.9);
+  box-shadow: 0 0 18px rgba(217, 70, 239, 0.34);
+  background: linear-gradient(180deg, rgba(94, 31, 121, 0.84), rgba(64, 19, 93, 0.96));
 }
 
 .chip {
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #0f172a;
-  border: 1px solid #334155;
+  min-width: 108px;
+  border-radius: 10px;
+  background: rgba(34, 16, 53, 0.72);
+  border: 1px solid rgba(196, 181, 253, 0.28);
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   font-size: 0.9rem;
 }
 
+.chip-label {
+  color: var(--text-3);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+.status-chip {
+  min-width: 196px;
+}
+
+.stage {
+  padding: 8px;
+  display: grid;
+  place-items: center;
+}
+
 #game {
-  width: min(100%, 1280px);
+  width: min(100%, 1320px);
   max-width: 100%;
   height: auto;
-  border: 1px solid #334155;
+  border: 1px solid rgba(216, 180, 254, 0.35);
   border-radius: 12px;
   display: block;
   margin: 0 auto;
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+  background: #05010b;
+  box-shadow:
+    0 0 0 1px rgba(217, 70, 239, 0.15),
+    0 16px 32px rgba(0, 0, 0, 0.45);
 }
 
 .footer {
-  margin-top: 0;
-  color: #94a3b8;
+  padding: 11px 14px;
+  color: var(--text-2);
   font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+@media (max-width: 900px) {
+  .app {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .status-chip {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .app {
+    grid-template-rows: auto auto auto auto 1fr auto;
+  }
+
+  .controls button {
+    flex: 1 1 150px;
+  }
+
+  .chip {
+    min-width: calc(50% - 4px);
+  }
+
+  .footer {
+    font-size: 0.8rem;
+  }
 }
